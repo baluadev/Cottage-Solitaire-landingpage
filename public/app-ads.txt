@@ -1,0 +1,3 @@
+# app-ads.txt for Cottage Solitaire: Card Sort (com.nexs.cottagesolitaire)
+# Replace pub-XXXXXXXXXXXXXXXX with the AdMob publisher ID from AdMob > Settings > Account.
+google.com, pub-8681872943360035, DIRECT, f08c47fec0942fa0
