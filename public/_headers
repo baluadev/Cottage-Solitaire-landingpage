@@ -1,0 +1,4 @@
+/play/Build/*
+  Cache-Control: public, max-age=86400
+/play/StreamingAssets/*
+  Cache-Control: public, max-age=86400

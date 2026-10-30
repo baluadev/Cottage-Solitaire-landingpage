@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Play Cottage Solitaire: Card Sort in your browser</title>
+<meta name="description" content="Play the first levels of Cottage Solitaire: Card Sort free in your browser. Full game with 960+ levels on Google Play.">
+<link rel="icon" href="/favicon.png">
+<style>
+  html,body{margin:0;height:100%;background:#1d2a1a;color:#f4efe0;font-family:Nunito,system-ui,sans-serif;overflow:hidden}
+  #wrap{position:fixed;top:0;left:50%;transform:translateX(-50%);height:100%;width:min(100vw,56.25vh)}
+  canvas{width:100%;height:100%;display:block;background:#1d2a1a;touch-action:none}
+  #loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#1d2a1a;padding:24px;text-align:center}
+  #loading img{width:96px;height:96px;border-radius:22px}
+  .bar{width:70%;height:10px;border-radius:6px;background:#3a4d35;overflow:hidden}
+  #fill{height:100%;width:0;background:#9fcf7a;transition:width .2s}
+  #msg{font-size:14px;opacity:.85;min-height:20px}
+  #err{display:none;position:absolute;left:0;right:0;top:0;background:#b3261e;padding:10px;font-size:14px;z-index:5}
+  #back{position:fixed;left:10px;top:10px;z-index:9;font-size:13px;color:#f4efe0;background:#0008;padding:6px 10px;border-radius:14px;text-decoration:none}
+</style>
+</head>
+<body>
+<a id="back" href="/" style="display:none">&larr; Home</a>
+<div id="wrap">
+  <canvas id="c" tabindex="-1"></canvas>
+  <div id="loading">
+    <img src="/images/icon.png" alt="">
+    <div class="bar"><div id="fill"></div></div>
+    <div id="msg">Loading… first visit downloads about 90&nbsp;MB, later visits are cached.</div>
+  </div>
+  <div id="err"></div>
+</div>
+<script>
+if (!/embed=1/.test(location.search)) document.getElementById("back").style.display = "block";
+(function () {
+  // Cloudflare static assets allow max 25 MiB per file, so the game data is split into parts.
+  var PARTS = 4, DATA_URL = "Build/game.data.unityweb";
+  var fill = document.getElementById("fill"), msg = document.getElementById("msg");
+  var dataProgress = 0, otherProgress = 0;
+  function show() { fill.style.width = Math.min(100, (dataProgress * 0.8 + otherProgress * 0.2) * 100) + "%"; }
+
+  var realFetch = window.fetch.bind(window);
+  var dataPromise = null;
+  function loadData() {
+    if (dataPromise) return dataPromise;
+    dataPromise = (async function () {
+      var chunks = [], total = 0, loaded = 0, sizes = [];
+      for (var i = 0; i < PARTS; i++) {
+        var r = await realFetch("Build/game.data.part" + i);
+        if (!r.ok) throw new Error("download failed (" + r.status + ")");
+        var len = +r.headers.get("content-length") || 19000000;
+        var reader = r.body.getReader();
+        for (;;) {
+          var s = await reader.read();
+          if (s.done) break;
+          chunks.push(s.value); loaded += s.value.length;
+          dataProgress = loaded / (len * PARTS);
+          show();
+        }
+      }
+      dataProgress = 1; show();
+      return new Blob(chunks, { type: "application/octet-stream" });
+    })();
+    return dataPromise;
+  }
+  // Unity asks for one data file; hand it the re-assembled parts.
+  window.fetch = function (input, init) {
+    var url = typeof input === "string" ? input : input.url;
+    if (/game\.data\.unityweb(\?|$)/.test(url)) {
+      return loadData().then(function (blob) {
+        return new Response(blob, { status: 200, headers: { "Content-Type": "application/octet-stream", "Content-Length": String(blob.size) } });
+      });
+    }
+    return realFetch(input, init);
+  };
+
+  function banner(text) {
+    var e = document.getElementById("err"); e.textContent = text; e.style.display = "block";
+  }
+  var config = {
+    arguments: [],
+    dataUrl: DATA_URL,
+    frameworkUrl: "Build/game.framework.js.unityweb",
+    codeUrl: "Build/game.wasm.unityweb",
+    streamingAssetsUrl: "StreamingAssets",
+    companyName: "NEXS",
+    productName: "Cottage Solitaire",
+    productVersion: "1.0.7",
+    showBanner: function (m, t) { if (t === "error") banner(m); else console.warn(m); }
+  };
+  var s = document.createElement("script");
+  s.src = "Build/game.loader.js";
+  s.onload = function () {
+    createUnityInstance(document.getElementById("c"), config, function (p) { otherProgress = p; show(); })
+      .then(function () { document.getElementById("loading").style.display = "none"; })
+      .catch(function (e) { msg.textContent = "Sorry, the game could not start in this browser."; banner(String(e)); });
+  };
+  s.onerror = function () { msg.textContent = "Could not load the game files."; };
+  document.body.appendChild(s);
+  loadData().catch(function (e) { msg.textContent = "Download failed: " + e.message + ". Please reload."; });
+})();
+</script>
+</body>
+</html>

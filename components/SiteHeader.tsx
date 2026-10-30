@@ -32,9 +32,9 @@ export default function SiteHeader({ variant = "home" }: { variant?: "home" | "i
             </Link>
           ))}
         </div>
-        <Link href="/#download" className="btn-play">
+        <a href="/play/index.html" className="btn-play">
           Play free
-        </Link>
+        </a>
       </nav>
     </header>
   );

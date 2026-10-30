@@ -27,3 +27,15 @@ npm run build      # static site in ./out
 
 `npm run build` writes a fully static site to `out/`. Upload that folder to any static host
 (Firebase Hosting, Netlify, Cloudflare Pages, GitHub Pages). Remember to serve `app-ads.txt` at the domain root.
+
+## Web game (`/play/`)
+
+`public/play/` (opened by the header "Play free" button) holds the WebGL build of the game (Unity, first levels, no ads — rewarded buttons grant rewards directly).
+Cloudflare static assets allow max 25 MiB per file, so `game.data.unityweb` is split into `Build/game.data.part0..3`
+and re-assembled in `play/index.html` (it intercepts Unity's fetch). If you rebuild the game, re-split the new data file:
+
+```bash
+split -b 19000000 -d -a 1 gzip.data.unityweb public/play/Build/game.data.part   # then update PARTS in play/index.html
+```
+
+Then `npm run deploy` (Workers) or deploy `out/` to Pages.
